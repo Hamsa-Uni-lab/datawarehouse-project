@@ -1,0 +1,49 @@
+from datetime import datetime
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+import fastf1
+import pandas as pd
+
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 0,
+}
+
+def fetch_and_save_event_schedule():
+    # Initialize an empty list to store event data
+    all_events = []
+
+    # Fetch event schedule data for each year from 1950 to 2023
+    for year in range(1950, 2024):
+        print(f"YEAR: {year}")
+        events_year = fastf1.get_event_schedule(year)
+        # Check if events_year is a DataFrame
+        if isinstance(events_year, pd.DataFrame):
+            all_events.append(events_year)
+
+    # Concatenate all event data into a single DataFrame
+    combined_events = pd.concat(all_events, ignore_index=True)
+
+    # Define the file path for the CSV file
+    csv_file_path = "/opt/airflow/dags/event_schedule_1950_to_2023.csv"
+
+    # Write the combined DataFrame to a CSV file
+    combined_events.to_csv(csv_file_path, index=False)
+
+    print(f"Event schedule from 1950 to 2023 saved to: {csv_file_path}")
+
+with DAG('fetch_event_schedule', 
+         default_args=default_args,
+         schedule_interval=None,
+         start_date=datetime(2024, 3, 2),
+         catchup=False) as dag:
+
+    fetch_event_schedule_task = PythonOperator(
+        task_id='fetch_event_schedule_task',
+        python_callable=fetch_and_save_event_schedule
+    )
+
+fetch_event_schedule_task
