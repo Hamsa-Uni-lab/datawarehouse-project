@@ -5,7 +5,7 @@ def create_tables():
     dbname = 'example_db'
     user = 'masteruser'
     password = 'MasterPassword123'
-    host = 'your_host_address'
+    host = 'example-cluster.cvcx5irfle7a.us-east-1.redshift.amazonaws.com'
     port = '5439'
 
     # Connect to the database
@@ -95,7 +95,7 @@ def create_tables():
         round INT NOT NULL,
         circuitId INT NOT NULL REFERENCES circuits(circuitId),
         name VARCHAR(255) NOT NULL,
-        date DATE NOT NULL DEFAULT '0000-00-00',
+        date DATE DEFAULT NULL,
         time TIME,
         UNIQUE(year, round)
     );
@@ -177,7 +177,6 @@ def create_tables():
         position INT,
         positionText VARCHAR(255),
         wins INT NOT NULL,
-        PRIMARY KEY (driverStandingsId),
         FOREIGN KEY (raceId) REFERENCES races(raceId),
         FOREIGN KEY (driverId) REFERENCES drivers(driverId)
     );
@@ -196,7 +195,6 @@ def create_tables():
         position INT,
         positionText VARCHAR(255),
         wins INT NOT NULL,
-        PRIMARY KEY (constructorStandingsId),
         FOREIGN KEY (raceId) REFERENCES races(raceId),
         FOREIGN KEY (constructorId) REFERENCES constructors(constructorId)
     );
