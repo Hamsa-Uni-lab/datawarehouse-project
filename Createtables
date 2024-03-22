@@ -1,0 +1,216 @@
+import psycopg2
+
+def create_tables():
+    # Database connection parameters
+    dbname = 'example_db'
+    user = 'masteruser'
+    password = 'MasterPassword123'
+    host = 'your_host_address'
+    port = '5439'
+
+    # Connect to the database
+    conn = psycopg2.connect(
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+
+    # Create a cursor object
+    cur = conn.cursor()
+
+    # SQL statement to create the seasons table
+    create_seasons_table_query = """
+    CREATE TABLE IF NOT EXISTS seasons (
+        year INT PRIMARY KEY
+    );
+    """
+
+    # Execute the SQL statement to create the seasons table
+    cur.execute(create_seasons_table_query)
+
+    # SQL statement to create the circuits table
+    create_circuits_table_query = """
+    CREATE TABLE IF NOT EXISTS circuits (
+        circuitId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        circuitRef VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        location VARCHAR(255),
+        country VARCHAR(255),
+        lat FLOAT,
+        lng FLOAT
+    );
+    """
+
+    # Execute the SQL statement to create the circuits table
+    cur.execute(create_circuits_table_query)
+
+    # SQL statement to create the constructors table
+    create_constructors_table_query = """
+    CREATE TABLE IF NOT EXISTS constructors (
+        constructorId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        constructorRef VARCHAR(255) NOT NULL,
+        name VARCHAR(255) UNIQUE NOT NULL,
+        nationality VARCHAR(255)
+    );
+    """
+
+    # Execute the SQL statement to create the constructors table
+    cur.execute(create_constructors_table_query)
+
+    # SQL statement to create the drivers table
+    create_drivers_table_query = """
+    CREATE TABLE IF NOT EXISTS drivers (
+        driverId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        driverRef VARCHAR(255) NOT NULL,
+        number INT,
+        code VARCHAR(3),
+        forename VARCHAR(255) NOT NULL,
+        surname VARCHAR(255) NOT NULL,
+        dob DATE,
+        nationality VARCHAR(255)
+    );
+    """
+
+    # Execute the SQL statement to create the drivers table
+    cur.execute(create_drivers_table_query)
+
+    # SQL statement to create the status table
+    create_status_table_query = """
+    CREATE TABLE IF NOT EXISTS status (
+        statusId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        status VARCHAR(255) NOT NULL
+    );
+    """
+
+    # Execute the SQL statement to create the status table
+    cur.execute(create_status_table_query)
+
+    # SQL statement to create the races table
+    create_races_table_query = """
+    CREATE TABLE IF NOT EXISTS races (
+        raceId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        year INT NOT NULL REFERENCES seasons(year),
+        round INT NOT NULL,
+        circuitId INT NOT NULL REFERENCES circuits(circuitId),
+        name VARCHAR(255) NOT NULL,
+        date DATE NOT NULL DEFAULT '0000-00-00',
+        time TIME,
+        UNIQUE(year, round)
+    );
+    """
+
+    # Execute the SQL statement to create the races table
+    cur.execute(create_races_table_query)
+
+    # SQL statement to create the results table
+    create_results_table_query = """
+    CREATE TABLE IF NOT EXISTS results (
+        resultId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        raceId INT NOT NULL REFERENCES races(raceId),
+        driverId INT NOT NULL REFERENCES drivers(driverId),
+        constructorId INT NOT NULL REFERENCES constructors(constructorId),
+        number INT,
+        grid INT NOT NULL,
+        position INT,
+        positionOrder INT NOT NULL,
+        points FLOAT NOT NULL DEFAULT 0,
+        laps INT NOT NULL DEFAULT 0,
+        time VARCHAR(255),
+        milliseconds INT,
+        fastestLap INT,
+        rank INT NOT NULL DEFAULT 0,
+        fastestLapTime VARCHAR(255),
+        fastestLapSpeed VARCHAR(255),
+        statusId INT NOT NULL REFERENCES status(statusId)
+    );
+    """
+
+    # Execute the SQL statement to create the results table
+    cur.execute(create_results_table_query)
+
+# SQL statement to create the lap_times table
+    create_lap_times_table_query = """
+    CREATE TABLE IF NOT EXISTS lap_times (
+        raceId INT NOT NULL,
+        driverId INT NOT NULL,
+        lap INT NOT NULL,
+        position INT,
+        time VARCHAR(255),
+        milliseconds INT,
+        PRIMARY KEY (raceId, driverId, lap),
+        FOREIGN KEY (raceId) REFERENCES races(raceId),
+        FOREIGN KEY (driverId) REFERENCES drivers(driverId)
+    );
+    """
+
+    # Execute the SQL statement to create the lap_times table
+    cur.execute(create_lap_times_table_query)
+
+    # SQL statement to create the pit_stops table
+    create_pit_stops_table_query = """
+    CREATE TABLE IF NOT EXISTS pit_stops (
+        raceId INT NOT NULL,
+        driverId INT NOT NULL,
+        stop INT NOT NULL,
+        lap INT NOT NULL,
+        time TIME NOT NULL,
+        duration VARCHAR(255),
+        milliseconds INT,
+        PRIMARY KEY (raceId, driverId, stop),
+        FOREIGN KEY (raceId) REFERENCES races(raceId),
+        FOREIGN KEY (driverId) REFERENCES drivers(driverId)
+    );
+    """
+
+    # Execute the SQL statement to create the pit_stops table
+    cur.execute(create_pit_stops_table_query)
+
+    # SQL statement to create the driver_standings table
+    create_driver_standings_table_query = """
+    CREATE TABLE IF NOT EXISTS driver_standings (
+        driverStandingsId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        raceId INT NOT NULL,
+        driverId INT NOT NULL,
+        points FLOAT NOT NULL,
+        position INT,
+        positionText VARCHAR(255),
+        wins INT NOT NULL,
+        PRIMARY KEY (driverStandingsId),
+        FOREIGN KEY (raceId) REFERENCES races(raceId),
+        FOREIGN KEY (driverId) REFERENCES drivers(driverId)
+    );
+    """
+
+    # Execute the SQL statement to create the driver_standings table
+    cur.execute(create_driver_standings_table_query)
+
+    # SQL statement to create the constructor_standings table
+    create_constructor_standings_table_query = """
+    CREATE TABLE IF NOT EXISTS constructor_standings (
+        constructorStandingsId INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        raceId INT NOT NULL,
+        constructorId INT NOT NULL,
+        points FLOAT NOT NULL,
+        position INT,
+        positionText VARCHAR(255),
+        wins INT NOT NULL,
+        PRIMARY KEY (constructorStandingsId),
+        FOREIGN KEY (raceId) REFERENCES races(raceId),
+        FOREIGN KEY (constructorId) REFERENCES constructors(constructorId)
+    );
+    """
+
+    # Execute the SQL statement to create the constructor_standings table
+    cur.execute(create_constructor_standings_table_query)
+
+    # Commit the transaction
+    conn.commit()
+
+    # Close cursor and connection
+    cur.close()
+    conn.close()
+
+# Call the function to create all six tables
+create_tables()
