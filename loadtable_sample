@@ -1,0 +1,63 @@
+import psycopg2
+import boto3
+from io import StringIO
+
+def connect_to_redshift(dbname, user, password, host, port):
+    conn = psycopg2.connect(
+        dbname='example_db',
+        user='masteruser',
+        password='MasterPassword123',
+        host='example-cluster.cosnnd4deqca.us-east-1.redshift.amazonaws.com',
+        port='5439'
+    )
+    return conn
+
+def read_csv_from_s3(bucket_name, file_key, aws_access_key_id, aws_secret_access_key, aws_session_token):
+    s3 = boto3.client('s3', aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key, aws_session_token=aws_session_token)
+    obj = s3.get_object(Bucket=bucket_name, Key=file_key)
+    data = obj['Body'].read().decode('utf-8')
+    return data
+
+def load_data_to_redshift(conn, table_name, csv_data, bucket_name, file_key):
+    cur = conn.cursor()
+    # Load CSV data into Redshift table using COPY command
+    copy_sql = f"""
+    COPY {table_name} 
+    FROM 's3://{bucket_name}/{file_key}' 
+    IAM_ROLE 'arn:aws:iam::905418162536:role/LabRole'
+    CSV IGNOREHEADER 1;
+    """
+    cur.execute(copy_sql)
+    conn.commit()
+    cur.close()
+
+# Example usage
+if __name__ == "__main__":
+    # AWS credentials and Redshift connection details
+    aws_access_key_id = ''
+    aws_secret_access_key = ''
+    aws_session_token = ''
+    redshift_dbname = ''
+    redshift_user = ''
+    redshift_password = ''
+    redshift_host = ''
+    redshift_port = '5439'
+
+    # S3 bucket and file details
+    bucket_name = 'dwdag1'
+    file_key = 'transformed/circuits.csv'
+
+    # Redshift table to load data into
+    table_name = 'circuits'
+
+    # Connect to Redshift
+    conn = connect_to_redshift(redshift_dbname, redshift_user, redshift_password, redshift_host, redshift_port)
+
+    # Read CSV data from S3
+    csv_data = read_csv_from_s3(bucket_name, file_key, aws_access_key_id, aws_secret_access_key, aws_session_token)
+
+    # Load data into Redshift
+    load_data_to_redshift(conn, table_name, csv_data, bucket_name, file_key)
+
+    # Close the connection
+    conn.close()
